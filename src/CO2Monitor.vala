@@ -1,7 +1,7 @@
 
 public struct Reading {
-    double TemperatureKelvin;
-    uint16 CO2PPM;
+    public double TemperatureKelvin;
+    public uint16 CO2PPM;
 
     public double TemperatureCelcius() {
         return TemperatureKelvin - 273.15;
@@ -21,7 +21,8 @@ public class CO2Monitor {
     }
 
     ~CO2Monitor() {
-        device.Close();
+        if(device != null)
+            device.Close();
         HID.Exit();
     }
 
@@ -30,11 +31,19 @@ public class CO2Monitor {
             device.Close();
         }
         device = new HID.Device(0x04d9, 0xa052, null);
-        device.SendFeatureReport(key, 9);
+        if(device != null)
+            device.SendFeatureReport(key, 9);
     }
 
     public Reading Read() {
         Reading r = {0};
+        if(device == null) {
+            this.Refresh();
+            if(device == null) {
+                GLib.Thread.usleep(3000000);
+                return r;
+            }
+        }
         bool readTemp = false;
         bool readCO2 = false;
         while (device.Read(buf, 8) > 0) {
